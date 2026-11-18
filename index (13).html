@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuit Atlas</title>
+<style>
+  :root {
+    --bg: #f7f8fb; --card: #ffffff; --ink: #1d2433; --muted: #6b7385;
+    --blue: #2563eb; --green: #16a34a; --orange: #ea580c; --red: #dc2626;
+    --line: #e3e7ef; --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; }
+  header { background: linear-gradient(135deg, #2563eb, #0ea5e9); color: #fff; padding: 28px 20px 24px; }
+  header h1 { margin: 0 0 4px; font-size: 1.9rem; letter-spacing: -0.5px; }
+  header p { margin: 0; opacity: 0.92; }
+  nav { display: flex; gap: 8px; padding: 12px 20px; overflow-x: auto; background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+  nav button { border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 8px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap; font-size: 0.95rem; }
+  nav button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  main { max-width: 900px; margin: 0 auto; padding: 20px; }
+  section { display: none; }
+  section.active { display: block; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  h2 { margin: 0 0 12px; font-size: 1.35rem; }
+  h3 { font-size: 1rem; color: var(--blue); margin: 16px 0 6px; }
+  input[type="search"], input[type="number"], input[type="text"], select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 1rem; background: #fff; margin-bottom: 12px;
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .comp { border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; background: #fff; transition: transform 0.1s, border-color 0.1s; }
+  .comp:hover { transform: translateY(-2px); border-color: var(--blue); }
+  .comp .icon { font-size: 1.8rem; }
+  .comp h3 { margin: 6px 0 2px; font-size: 1.05rem; color: var(--ink); }
+  .tag { display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: #eef4ff; color: var(--blue); margin-right: 4px; }
+  .tag.green { background: #ecfdf3; color: var(--green); }
+  .tag.orange { background: #fff4ec; color: var(--orange); }
+  .detail ul, .card ul { margin: 0; padding-left: 20px; }
+  .back { background: none; border: none; color: var(--blue); cursor: pointer; padding: 0; font-size: 0.95rem; margin-bottom: 8px; }
+  .btn { padding: 10px 16px; border: none; border-radius: 10px; background: var(--blue); color: #fff; cursor: pointer; font-size: 0.97rem; margin: 4px 6px 4px 0; }
+  .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+  .btn.small { padding: 6px 10px; font-size: 0.85rem; }
+  .lab-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-weight: 600; }
+  input[type="range"] { width: 100%; accent-color: var(--blue); }
+  .circuit { width: 100%; height: auto; margin-top: 8px; }
+  .bar { height: 14px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: 8px; }
+  .bar > div { height: 100%; transition: width 0.2s, background 0.2s; }
+  .status { margin-top: 10px; font-size: 0.95rem; }
+  .status.ok { color: var(--green); } .status.warn { color: var(--orange); } .status.bad { color: var(--red); }
+  .options button { display: block; width: 100%; text-align: left; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; font-size: 0.97rem; }
+  .options button:hover { border-color: var(--blue); }
+  .options button.right { border-color: var(--green); background: #ecfdf3; }
+  .options button.wrong { border-color: var(--red); background: #fef2f2; }
+  .feedback { margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: #f1f5ff; font-size: 0.95rem; }
+  .score { font-weight: 700; color: var(--blue); }
+  .muted { color: var(--muted); font-size: 0.92rem; }
+  .chip { display: inline-block; padding: 6px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; margin: 4px; font-size: 0.95rem; }
+  .chain { min-height: 52px; padding: 12px; border: 2px dashed var(--line); border-radius: 12px; margin: 10px 0; font-size: 1.05rem; background: #fbfcfe; }
+  .result { padding: 12px; border-radius: 10px; font-weight: 600; }
+  .result.ok { background: #ecfdf3; color: var(--green); }
+  .result.bad { background: #fef2f2; color: var(--red); }
+  .result.warn { background: #fff4ec; color: var(--orange); }
+  pre { background: #f4f6fa; border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow-x: auto; font-size: 0.88rem; }
+  .step { margin: 6px 0; padding-left: 4px; }
+  .out { margin-top: 10px; font-weight: 700; color: var(--blue); }
+  .timer { font-size: 1.2rem; font-weight: 700; color: var(--orange); }
+  .glossary-item { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  .glossary-item b { color: var(--blue); }
+  footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 24px 12px; }
+
+  .hero { text-align: center; padding: 28px 16px; }
+  .hero h2 { font-size: 1.8rem; margin-bottom: 8px; }
+  .hero p { color: var(--muted); max-width: 560px; margin: 0 auto 16px; }
+  .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 8px; }
+  .feature { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+  .feature .icon { font-size: 1.6rem; }
+  .feature h3 { margin: 0; color: var(--ink); font-size: 1.05rem; }
+  .feature p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+  .feature button { margin-top: auto; align-self: flex-start; }
+  .steps-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 12px; }
+  .steps-row div { background: #f4f8ff; border-radius: 10px; padding: 12px; font-size: 0.92rem; }
+  @media print {
+    header, nav, footer, .no-print { display: none !important; }
+    body { background: #fff; }
+    section { display: none !important; }
+    #glossary { display: block !important; }
+    .card { box-shadow: none; border: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Circuit Atlas ⚡</h1>
+  <p>Learn electronics by building, breaking, and fixing circuits.</p>
+</header>
+
+<nav class="no-print">
+  <button class="active" data-tab="home">Home</button>
+  <button data-tab="library">Library</button>
+  <button data-tab="build">Circuit Builder</button>
+  <button data-tab="calc">Calculators</button>
+  <button data-tab="lab">LED Lab</button>
+  <button data-tab="hunt">Fault Hunt</button>
+  <button data-tab="symptoms">Symptoms</button>
+  <button data-tab="tutorials">Tutorials</button>
+  <button data-tab="exams">Exams</button>
+  <button data-tab="glossary">Glossary</button>
+</nav>
+
+<main>
+
+  <!-- HOME -->
+  <section id="home" class="active">
+    <div class="card hero">
+      <h2>Welcome to Circuit Atlas ⚡</h2>
+      <p>Learn electronics by building, breaking, and fixing circuits. Pick a starting point below, or explore everything from the menu.</p>
+      <button class="btn" data-go="build">Start building</button>
+      <button class="btn ghost" data-go="library">Browse components</button>
+    </div>
+
+    <div class="card">
+      <h2>What you can do</h2>
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="icon">🧩</div>
+          <h3>Circuit Builder</h3>
+          <p>Assemble a loop and find out if it works.</p>
+          <button class="btn small" data-go="build">Open</button>
+        </div>
+        <div class="feature">
+          <div class="icon">📚</div>
+          <h3>Component Library</h3>
+          <p>Pinouts, uses, and common mistakes for 16 parts.</p>
+          <button class="btn small" data-go="library">Open</button>
+        </div>
+        <div class="feature">
+          <div class="icon">🧮</div>
+          <h3>Calculators</h3>
+          <p>Ohm's law, voltage dividers, RC timing, and power.</p>
+          <button class="btn small" data-go="calc">Open</button>
+        </div>
+        <div class="feature">
+          <div class="icon">💡</div>
+          <h3>LED Lab</h3>
+          <p>Slide the voltage and resistor and watch the current change.</p>
+          <button class="btn small" data-go="lab">Open</button>
+        </div>
+        <div class="feature">
+          <div class="icon">🔍</div>
+          <h3>Fault Hunt</h3>
+          <p>Spot the one mistake in each circuit.</p>
+          <button class="btn small" data-go="hunt">Open</button>
+        </div>
+        <div class="feature">
+          <div class="icon">🛠️</div>
+          <h3>Symptoms</h3>
+          <p>"My circuit doesn't work" — find the likely cause.</p>
+          <button class="btn small" data-go="symptoms">Open</button>
+        </div>
+        <div class="feature">
+          <div class="icon">🎓</div>
+          <h3>Tutorials</h3>
+          <p>Three guided Arduino projects with code.</p>
+          <button class="btn small" data-go="tutorials">Open</button>
+        </div>
+        <div class="feature">
+          <div class="icon">📝</div>
+          <h3>Exams</h3>
+          <p>Timed problems with full solutions.</p>
+          <button class="btn small" data-go="exams">Open</button>
+        </div>
+        <div class="feature">
+          <div class="icon">📖</div>
+          <h3>Glossary</h3>
+          <p>Key terms, searchable and printable.</p>
+          <button class="btn small" data-go="glossary">Open</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>New here? Try this in 3 steps</h2>
+      <div class="steps-row">
+        <div><b>1. Learn a part</b><br>Open the Library and tap an LED.</div>
+        <div><b>2. Build it</b><br>Add a battery, resistor, and LED in the Builder.</div>
+        <div><b>3. Break it</b><br>Reverse the LED and see what happens.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIBRARY -->
+  <section id="library">
+    <div class="card">
+      <h2>Component Library</h2>
+      <input type="search" id="search" placeholder="Search a component (e.g. resistor, LED, 555)">
+      <div class="grid" id="grid"></div>
+    </div>
+    <div class="card" id="detail" style="display:none"></div>
+  </section>
+
+  <!-- CIRCUIT BUILDER -->
+  <section id="build">
+    <div class="card">
+      <h2>Circuit Builder</h2>
+      <p class="muted" style="margin-top:0">Add parts to a single series loop. Each part connects to the next, and the loop returns to the battery. Tap the switch to open or close it.</p>
+      <div class="no-print">
+        <button class="btn ghost small" data-add="batt">+ Battery 5 V</button>
+        <button class="btn ghost small" data-add="sw">+ Switch</button>
+        <button class="btn ghost small" data-add="res">+ Resistor 220 Ω</button>
+        <button class="btn ghost small" data-add="ledF">+ LED (correct way)</button>
+        <button class="btn ghost small" data-add="ledR">+ LED (reversed)</button>
+        <button class="btn ghost small" data-add="cap">+ Capacitor 100 µF</button>
+      </div>
+      <div class="chain" id="chain"></div>
+      <div class="no-print">
+        <button class="btn small" id="clearBuild">Clear</button>
+        <button class="btn small ghost" id="removeLast">Remove last</button>
+      </div>
+      <div class="result" id="buildResult" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- CALCULATORS -->
+  <section id="calc">
+    <div class="card">
+      <h2>Ohm's Law</h2>
+      <p class="muted" style="margin-top:0">Enter any two values and the third is worked out. Leave one blank.</p>
+      <label>Voltage (V)<input type="number" id="oV" step="any"></label>
+      <label>Current (A)<input type="number" id="oI" step="any"></label>
+      <label>Resistance (Ω)<input type="number" id="oR" step="any"></label>
+      <button class="btn" id="ohmBtn">Calculate</button>
+      <div class="out" id="ohmOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>Voltage Divider</h2>
+      <p class="muted" style="margin-top:0">Vout = Vin × R2 / (R1 + R2)</p>
+      <label>Input voltage Vin (V)<input type="number" id="dVin" value="9" step="any"></label>
+      <label>R1 (Ω)<input type="number" id="dR1" value="10000" step="any"></label>
+      <label>R2 (Ω)<input type="number" id="dR2" value="5000" step="any"></label>
+      <button class="btn" id="divBtn">Calculate</button>
+      <div class="out" id="divOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>RC Time Constant</h2>
+      <p class="muted" style="margin-top:0">τ = R × C. A capacitor charges to about 63% of the supply in one τ, and is nearly full after 5τ.</p>
+      <label>Resistance (Ω)<input type="number" id="rcR" value="10000" step="any"></label>
+      <label>Capacitance (µF)<input type="number" id="rcC" value="100" step="any"></label>
+      <button class="btn" id="rcBtn">Calculate</button>
+      <div class="out" id="rcOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>Power Dissipation</h2>
+      <p class="muted" style="margin-top:0">P = V × I, and also P = I² × R. Check your resistor's power rating against this.</p>
+      <label>Voltage (V)<input type="number" id="pV" value="12" step="any"></label>
+      <label>Resistance (Ω)<input type="number" id="pR" value="4" step="any"></label>
+      <button class="btn" id="pBtn">Calculate</button>
+      <div class="out" id="pOut"></div>
+    </div>
+  </section>
+
+  <!-- LED LAB -->
+  <section id="lab">
+    <div class="card">
+      <h2>LED Lab</h2>
+      <p class="muted" style="margin-top:0">Move the sliders and watch how the current through the LED changes. Try pushing the resistor too low.</p>
+      <svg class="circuit" viewBox="0 0 400 200" aria-label="LED circuit diagram">
+        <path d="M40 100 H110 V40 H300 V100" stroke="#1d2433" stroke-width="3" fill="none"/>
+        <path d="M300 100 V160 H40 V100" stroke="#1d2433" stroke-width="3" fill="none"/>
+        <line x1="40" y1="80" x2="40" y2="120" stroke="#1d2433" stroke-width="3"/>
+        <line x1="50" y1="88" x2="50" y2="112" stroke="#1d2433" stroke-width="5"/>
+        <text x="16" y="105" font-size="14" fill="#1d2433" id="vLabel">5V</text>
+        <rect x="150" y="30" width="70" height="20" rx="4" fill="#fff4ec" stroke="#ea580c" stroke-width="2"/>
+        <text x="160" y="22" font-size="13" fill="#ea580c" id="rLabel">220Ω</text>
+        <polygon points="260,70 280,85 260,100" fill="none" stroke="#1d2433" stroke-width="2"/>
+        <line x1="260" y1="70" x2="260" y2="100" stroke="#1d2433" stroke-width="2"/>
+        <circle id="led" cx="284" cy="70" r="14" fill="#fde68a" stroke="#f59e0b" stroke-width="2"/>
+      </svg>
+      <div class="lab-row"><span>Supply voltage</span><span id="vOut">5.0 V</span></div>
+      <input type="range" id="vSlider" min="2" max="12" step="0.5" value="5">
+      <div class="lab-row"><span>Resistor</span><span id="rOut">220 Ω</span></div>
+      <input type="range" id="rSlider" min="0" max="100" step="1" value="40">
+      <div class="lab-row"><span>LED current</span><span id="iOut">—</span></div>
+      <div class="bar"><div id="iBar" style="width:0;background:var(--green)"></div></div>
+      <div class="status" id="status"></div>
+      <p class="muted" style="font-size:0.85rem;margin-bottom:0">Assumes a typical red LED with a 2 V forward drop and a 20 mA maximum. Real parts vary, so check the datasheet.</p>
+    </div>
+  </section>
+
+  <!-- FAULT HUNT -->
+  <section id="hunt">
+    <div class="card">
+      <h2>Fault Hunt</h2>
+      <p class="muted" style="margin-top:0">Each circuit has one mistake. Find it. <span class="score" id="score">Score: 0</span> <span class="muted" id="huntBest"></span></p>
+      <div id="huntBox"></div>
+    </div>
+  </section>
+
+  <!-- SYMPTOMS -->
+  <section id="symptoms">
+    <div class="card">
+      <h2>My Circuit Doesn't Work</h2>
+      <p class="muted" style="margin-top:0">Pick what you see. You'll get the most likely causes and what to check first.</p>
+      <div id="symptomList"></div>
+      <div id="symptomOut" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- TUTORIALS -->
+  <section id="tutorials">
+    <div class="card">
+      <h2>Beginner Tutorials</h2>
+      <p class="muted" style="margin-top:0">Short guided projects. Use an Arduino Uno or similar board.</p>
+      <div id="tutorialList"></div>
+      <div id="tutorialOut"></div>
+    </div>
+  </section>
+
+  <!-- EXAMS -->
+  <section id="exams">
+    <div class="card">
+      <h2>Exam-Style Problems</h2>
+      <p class="muted" style="margin-top:0">Four problems, 5 minutes. Enter numeric answers. Your best score is saved on this phone.</p>
+      <div class="lab-row"><span>Time left</span><span class="timer" id="examTimer">05:00</span></div>
+      <div class="no-print"><button class="btn" id="examStart">Start exam</button></div>
+      <div id="examBody" style="margin-top:12px"></div>
+      <div class="out" id="examScore"></div>
+    </div>
+  </section>
+
+  <!-- GLOSSARY -->
+  <section id="glossary">
+    <div class="card">
+      <h2>Glossary &amp; Cheat Sheet</h2>
+      <div class="no-print">
+        <input type="search" id="gSearch" placeholder="Search a term">
+        <button class="btn" id="printBtn">Print cheat sheet</button>
+      </div>
+      <div id="glossaryList"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="no-print">Circuit Atlas · Built for learning · Always verify with a datasheet</footer>
+
+<script>
+  // ---------- Helpers ----------
+  function load(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (e) { return fallback; }
+  }
+  function save(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage blocked, fine */ }
+  }
+  const progress = load('circuitatlas-progress', { huntBest: 0, examBest: 0 });
+
+  // ---------- Tabs ----------
+  const tabs = document.querySelectorAll('nav button');
+  tabs.forEach(btn => btn.addEventListener('click', () => {
+    tabs.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.getElementById(btn.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0 });
+  }));
+
+  // Home page buttons jump to a tab
+  document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+    document.querySelector(`nav button[data-tab="${b.dataset.go}"]`).click();
+  }));
+
+  // ---------- Component library ----------
+  const components = [
+    { name: 'Resistor', icon: '🟫', level: 'Beginner', category: 'Passive',
+      purpose: 'Limits current and divides voltage.', pins: 'Two terminals, no polarity.',
+      uses: ['Protecting LEDs', 'Voltage dividers', 'Pull-up and pull-down lines'],
+      mistake: 'Using no resistor with an LED, which can burn it out.' },
+    { name: 'Capacitor', icon: '🔋', level: 'Beginner', category: 'Passive',
+      purpose: 'Stores charge. Think of it as a small water tank that fills and drains.',
+      pins: 'Two terminals. Electrolytic types are polarized (+ and −).',
+      uses: ['Smoothing power supplies', 'Filtering noise', 'Timing circuits with resistors'],
+      mistake: 'Connecting an electrolytic capacitor backwards.' },
+    { name: 'LED', icon: '💡', level: 'Beginner', category: 'Output',
+      purpose: 'Emits light when current flows forward through it.',
+      pins: 'Anode (+, longer leg) and cathode (−, shorter leg, flat side).',
+      uses: ['Indicators', 'Displays', 'Simple status lights'],
+      mistake: 'Connecting it without a current-limiting resistor.' },
+    { name: 'Diode', icon: '➡️', level: 'Beginner', category: 'Semiconductor',
+      purpose: 'Lets current flow one way only.', pins: 'Anode and cathode (the striped end is the cathode).',
+      uses: ['Rectifiers', 'Reverse-polarity protection', 'Flyback protection for relays'],
+      mistake: 'Installing it in reverse, so it blocks the current you need.' },
+    { name: 'NPN Transistor', icon: '🔀', level: 'Intermediate', category: 'Semiconductor',
+      purpose: 'A switch or amplifier controlled by a small base current.',
+      pins: 'Base (B), Collector (C), Emitter (E). E is the arrow side.',
+      uses: ['Switching motors or relays', 'Amplifying signals'],
+      mistake: 'Driving a motor directly from a microcontroller pin, which is too much current.' },
+    { name: 'MOSFET (N-channel)', icon: '⚙️', level: 'Advanced', category: 'Semiconductor',
+      purpose: 'A voltage-controlled switch that handles bigger currents than a transistor.',
+      pins: 'Gate (G), Drain (D), Source (S).',
+      uses: ['Switching motors and LED strips', 'PWM dimming'],
+      mistake: 'Leaving the gate floating, so the MOSFET switches unpredictably.' },
+    { name: 'Op-Amp (LM358)', icon: '📐', level: 'Intermediate', category: 'IC',
+      purpose: 'Compares or amplifies two voltages.', pins: '8-pin DIP. Inputs (+) and (−), output, and power pins.',
+      uses: ['Amplifiers', 'Comparators', 'Active filters'],
+      mistake: 'Forgetting to power the chip or leaving its inputs floating.' },
+    { name: '555 Timer', icon: '⏱️', level: 'Intermediate', category: 'IC',
+      purpose: 'Creates timing pulses or a square wave.',
+      pins: '8-pin DIP. Pin 1 GND, pin 8 VCC, pin 3 output, pin 4 reset.',
+      uses: ['Blinking LEDs', 'Simple clocks', 'Tone generators'],
+      mistake: 'Leaving the reset pin (pin 4) floating, which can make the output unstable.' },
+    { name: '7805 Regulator', icon: '🔌', level: 'Intermediate', category: 'Power',
+      purpose: 'Converts a higher input voltage to a steady 5 V output.',
+      pins: 'Input, GND, output. Needs input about 2 V above output.',
+      uses: ['5 V supply from a battery pack', 'Powering microcontrollers'],
+      mistake: 'Skipping heat management when the drop is large, so it overheats.' },
+    { name: 'Relay', icon: '🔁', level: 'Intermediate', category: 'Output',
+      purpose: 'Uses a small coil current to switch a separate, higher-power circuit.',
+      pins: 'Coil (two pins) and contacts (COM, NO, NC).',
+      uses: ['Switching mains-powered devices (with proper isolation)', 'Motor control'],
+      mistake: 'Not adding a flyback diode across the coil, which can damage the driver.' },
+    { name: 'Potentiometer', icon: '🎚️', level: 'Beginner', category: 'Passive',
+      purpose: 'An adjustable resistor, used as a manual knob or a voltage divider.',
+      pins: 'Three pins: two ends and a wiper (middle).',
+      uses: ['Volume controls', 'Setting a reference voltage', 'Dimming'],
+      mistake: 'Wiring it as a variable resistor with the wrong pin, so it never reaches zero.' },
+    { name: 'Photoresistor (LDR)', icon: '🌤️', level: 'Beginner', category: 'Sensor',
+      purpose: 'Resistance drops as light gets brighter.', pins: 'Two terminals, no polarity.',
+      uses: ['Night lights', 'Light-level alarms'],
+      mistake: 'Reading it without a divider resistor, so the reading is meaningless.' },
+    { name: 'Thermistor (NTC)', icon: '🌡️', level: 'Beginner', category: 'Sensor',
+      purpose: 'Resistance drops as temperature rises.', pins: 'Two terminals, no polarity.',
+      uses: ['Temperature sensing', 'Inrush current limiting'],
+      mistake: 'Assuming it reads temperature linearly. Its curve is non-linear, so use a datasheet table.' },
+    { name: 'Push Button', icon: '🔘', level: 'Beginner', category: 'Input',
+      purpose: 'Closes a circuit while pressed.', pins: 'Four legs, in pairs that are connected internally.',
+      uses: ['User input', 'Reset buttons'],
+      mistake: 'Using a button with no pull-up or pull-down, so the input floats.' },
+    { name: 'OLED Display (SSD1306)', icon: '🖥️', level: 'Advanced', category: 'Output',
+      purpose: 'A small display that shows text and graphics over I²C.',
+      pins: 'VCC, GND, SDA, SCL.',
+      uses: ['Showing sensor readings', 'Simple menus'],
+      mistake: 'Mixing up SDA and SCL, so nothing appears on the screen.' },
+    { name: 'Arduino Uno', icon: '🧠', level: 'Beginner', category: 'Microcontroller',
+      purpose: 'A small programmable board that reads sensors and drives outputs.',
+      pins: 'Digital pins 0–13, analog pins A0–A5, 5 V, 3.3 V, GND.',
+      uses: ['Blinking LEDs', 'Reading sensors', 'Controlling motors'],
+      mistake: 'Connecting 5 V sensors straight to 3.3 V-only pins.' }
+  ];
+
+  const grid = document.getElementById('grid');
+  const detail = document.getElementById('detail');
+  const search = document.getElementById('search');
+
+  function renderGrid(list) {
+    grid.innerHTML = '';
+    list.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'comp';
+      el.innerHTML = `<div class="icon">${c.icon}</div><h3>${c.name}</h3>
+        <span class="tag">${c.category}</span><span class="tag green">${c.level}</span>`;
+      el.addEventListener('click', () => showDetail(c));
+      grid.appendChild(el);
+    });
+    if (list.length === 0) grid.innerHTML = '<p class="muted">No matches. Try another word.</p>';
+  }
+
+  function showDetail(c) {
+    const link = 'https://www.google.com/search?q=' + encodeURIComponent(c.name + ' datasheet');
+    detail.style.display = 'block';
+    detail.innerHTML = `
+      <button class="back" onclick="document.getElementById('detail').style.display='none'">← Close</button>
+      <h2>${c.icon} ${c.name}</h2>
+      <div><span class="tag">${c.category}</span><span class="tag green">${c.level}</span></div>
+      <h3>Purpose</h3><p style="margin:0">${c.purpose}</p>
+      <h3>Pinout</h3><p style="margin:0">${c.pins}</p>
+      <h3>Common uses</h3><ul>${c.uses.map(u => `<li>${u}</li>`).join('')}</ul>
+      <h3>Common mistake</h3><p style="margin:0">⚠️ ${c.mistake}</p>
+      <h3>Datasheet</h3><p style="margin:0"><a href="${link}" target="_blank" rel="noopener">Search for the datasheet</a></p>`;
+    detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  search.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+    renderGrid(components.filter(c => c.name.toLowerCase().includes(q) || c.category.toLowerCase().includes(q)));
+  });
+  renderGrid(components);
+
+  // ---------- Circuit Builder ----------
+  const PARTS = {
+    batt: { label: '🔋 5 V battery' },
+    sw:   { label: '⏻ switch' },
+    res:  { label: '220 Ω resistor' },
+    ledF: { label: '💡 LED (correct)' },
+    ledR: { label: '💡 LED (reversed)' },
+    cap:  { label: '100 µF capacitor' }
+  };
+  let chain = [];
+  let switchClosed = true;
+
+  function renderChain() {
+    const el = document.getElementById('chain');
+    if (chain.length === 0) { el.innerHTML = '<span class="muted">Add parts above to start a loop.</span>'; }
+    else {
+      el.innerHTML = chain.map((p, i) => {
+        const txt = p === 'sw' ? `⏻ switch (${switchClosed ? 'closed' : 'open'})` : PARTS[p].label;
+        return `<span class="chip" data-idx="${i}" style="cursor:${p === 'sw' ? 'pointer' : 'default'}">${txt}</span>` +
+               (i < chain.length - 1 ? '<span>→</span>' : '<span>→ back to battery</span>');
+      }).join('');
+      el.querySelectorAll('.chip').forEach(ch => ch.addEventListener('click', () => {
+        if (chain[ch.dataset.idx] === 'sw') { switchClosed = !switchClosed; checkBuild(); renderChain(); }
+      }));
+    }
+    checkBuild();
+  }
+
+  function checkBuild() {
+    const res = document.getElementById('buildResult');
+    const has = p => chain.includes(p);
+    const count = p => chain.filter(x => x === p).length;
+    let cls, msg;
+
+    if (chain.length === 0) { res.textContent = ''; res.className = 'result'; return; }
+    if (count('batt') !== 1) { cls = 'bad'; msg = 'A loop needs exactly one battery.'; }
+    else if (has('sw') && !switchClosed) { cls = 'warn'; msg = 'The switch is open, so no current flows. Tap it to close.'; }
+    else if (has('ledR') && !has('ledF')) { cls = 'bad'; msg = 'The LED is reversed, so it will not light. Flip it so the long leg faces the battery’s + side.'; }
+    else if (has('ledF') && !has('res')) { cls = 'bad'; msg = 'No resistor limits the current, so the LED will burn out. Add a 220 Ω resistor.'; }
+    else if (has('ledF') && has('res')) { cls = 'ok'; msg = '✅ It works. The LED lights and the resistor protects it. Order does not change the current in a single loop.'; }
+    else if (has('cap')) { cls = 'warn'; msg = 'The capacitor charges, but nothing lights yet. Add an LED with a resistor to see it in action.'; }
+    else { cls = 'warn'; msg = 'Add an LED with a resistor to see something light.'; }
+
+    res.className = 'result ' + cls;
+    res.textContent = msg;
+  }
+
+  document.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => {
+    if (chain.length >= 7) return;
+    chain.push(b.dataset.add);
+    renderChain();
+  }));
+  document.getElementById('clearBuild').addEventListener('click', () => { chain = []; switchClosed = true; renderChain(); });
+  document.getElementById('removeLast').addEventListener('click', () => { chain.pop(); renderChain(); });
+  renderChain();
+
+  // ---------- Calculators ----------
+  const num = id => { const v = document.getElementById(id).value; return v === '' ? null : parseFloat(v); };
+  const fmt = x => Number(x.toPrecision(4)).toString();
+
+  document.getElementById('ohmBtn').addEventListener('click', () => {
+    let V = num('oV'), I = num('oI'), R = num('oR');
+    const filled = [V, I, R].filter(x => x !== null).length;
+    const out = document.getElementById('ohmOut');
+    if (filled !== 2) { out.textContent = 'Enter exactly two values.'; return; }
+    if (V === null) { V = I * R; out.textContent = `V = I × R = ${fmt(V)} V`; }
+    else if (I === null) { I = V / R; out.textContent = `I = V ÷ R = ${fmt(I)} A (${fmt(I * 1000)} mA)`; }
+    else { R = V / I; out.textContent = `R = V ÷ I = ${fmt(R)} Ω`; }
+  });
+
+  document.getElementById('divBtn').addEventListener('click', () => {
+    const Vin = num('dVin'), R1 = num('dR1'), R2 = num('dR2');
+    document.getElementById('divOut').textContent = (Vin === null || !R1 || !R2)
+      ? 'Enter Vin, R1 and R2 (R1 + R2 must be above zero).'
+      : `Vout = ${fmt(Vin * R2 / (R1 + R2))} V`;
+  });
+
+  document.getElementById('rcBtn').addEventListener('click', () => {
+    const R = num('rcR'), C = num('rcC') / 1e6;
+    if (!R || !C) { document.getElementById('rcOut').textContent = 'Enter R and C.'; return; }
+    const tau = R * C;
+    document.getElementById('rcOut').textContent =
+      `τ = ${fmt(tau)} s. About 63% charge after ${fmt(tau)} s, and nearly full (99%) after ${fmt(5 * tau)} s.`;
+  });
+
+  document.getElementById('pBtn').addEventListener('click', () => {
+    const V = num('pV'), R = num('pR');
+    if (!R) { document.getElementById('pOut').textContent = 'Enter a resistance above zero.'; return; }
+    const I = V / R, P = V * I;
+    document.getElementById('pOut').textContent =
+      `I = ${fmt(I)} A, P = ${fmt(P)} W. Choose a resistor rated above ${fmt(P * 2)} W for a safety margin.`;
+  });
+
+  // ---------- LED Lab ----------
+  const vSlider = document.getElementById('vSlider');
+  const rSlider = document.getElementById('rSlider');
+  const LED_VF = 2.0, I_MAX = 20;
+
+  function rFromSlider(v) { return Math.round(100 * Math.pow(100, v / 100)); }
+
+  function updateLab() {
+    const V = parseFloat(vSlider.value);
+    const R = rFromSlider(parseInt(rSlider.value));
+    const I = Math.max(0, (V - LED_VF) / R) * 1000;
+    const brightness = Math.min(1, I / I_MAX);
+
+    document.getElementById('vOut').textContent = V.toFixed(1) + ' V';
+    document.getElementById('rOut').textContent = R >= 1000 ? (R / 1000).toFixed(1) + ' kΩ' : R + ' Ω';
+    document.getElementById('vLabel').textContent = V.toFixed(1) + 'V';
+    document.getElementById('rLabel').textContent = R >= 1000 ? (R / 1000).toFixed(1) + 'kΩ' : R + 'Ω';
+    document.getElementById('iOut').textContent = I < 0.01 ? '0 mA' : I.toFixed(1) + ' mA';
+
+    const bar = document.getElementById('iBar');
+    bar.style.width = (Math.min(I, I_MAX * 1.5) / (I_MAX * 1.5) * 100) + '%';
+    bar.style.background = I > I_MAX ? 'var(--red)' : I > I_MAX * 0.8 ? 'var(--orange)' : 'var(--green)';
+
+    const led = document.getElementById('led');
+    led.setAttribute('fill', `rgba(253, 224, 71, ${0.15 + brightness * 0.85})`);
+    led.setAttribute('r', 10 + brightness * 6);
+
+    const status = document.getElementById('status');
+    if (V <= LED_VF) { status.className = 'status warn'; status.textContent = 'The supply is at or below the LED’s forward voltage, so it stays off. Raise the voltage.'; }
+    else if (I > I_MAX) { status.className = 'status bad'; status.textContent = '⚠️ Too much current. The LED is likely to burn out. Raise the resistor value.'; }
+    else if (I > I_MAX * 0.8) { status.className = 'status warn'; status.textContent = 'Bright, but close to the limit. Good for a short test only.'; }
+    else { status.className = 'status ok'; status.textContent = '✅ Safe and visible. This is a good operating point.'; }
+  }
+  vSlider.addEventListener('input', updateLab);
+  rSlider.addEventListener('input', updateLab);
+  updateLab();
+
+  // ---------- Fault Hunt ----------
+  const hunts = [
+    { q: 'An LED is connected straight across a 5 V supply. What is the main problem?',
+      options: ['It is too dim', 'Too much current will flow and burn it out', 'LEDs cannot use 5 V'], answer: 1,
+      why: 'Without a resistor, the LED draws far more than its ~20 mA limit.' },
+    { q: 'A capacitor is placed on a 9 V supply with the + leg on ground and the − leg on 9 V. What happens?',
+      options: ['It works fine', 'It may overheat or vent because it is reversed', 'It stops the supply'], answer: 1,
+      why: 'Electrolytic capacitors must have + toward the higher voltage. Reversed, they can fail.' },
+    { q: 'A microcontroller pin drives a 12 V motor directly through a wire. What is wrong?',
+      options: ['The motor is too strong', 'Pin current is far too low, so use a transistor to switch the motor', 'Motors need AC'], answer: 1,
+      why: 'Microcontroller pins supply only a few milliamps. A transistor lets a small signal control the motor.' },
+    { q: 'A diode is in a circuit with its striped end toward the positive supply. Why might the circuit not work?',
+      options: ['Diodes only work in reverse', 'The stripe marks the cathode, so the diode blocks current in that direction', 'Stripes do not matter'], answer: 1,
+      why: 'The stripe is the cathode. Current flows from anode to cathode, so this orientation blocks the intended path.' }
+  ];
+
+  let huntIndex = 0, score = 0;
+  const huntBox = document.getElementById('huntBox');
+  const scoreEl = document.getElementById('score');
+  const huntBestEl = document.getElementById('huntBest');
+  huntBestEl.textContent = progress.huntBest ? `· Best: ${progress.huntBest}/${hunts.length}` : '';
+
+  function renderHunt() {
+    if (huntIndex >= hunts.length) {
+      if (score > progress.huntBest) { progress.huntBest = score; save('circuitatlas-progress', progress); }
+      huntBestEl.textContent = `· Best: ${progress.huntBest}/${hunts.length}`;
+      huntBox.innerHTML = `<p class="fault-q">🎉 Done! Final score: ${score} / ${hunts.length}</p>
+        <button class="btn" onclick="restartHunt()">Play again</button>`;
+      return;
+    }
+    const h = hunts[huntIndex];
+    huntBox.innerHTML = `
+      <p class="fault-q">Challenge ${huntIndex + 1} of ${hunts.length}: ${h.q}</p>
+      <div class="options">${h.options.map((o, i) => `<button data-i="${i}">${o}</button>`).join('')}</div>
+      <div id="fb"></div>`;
+    huntBox.querySelectorAll('.options button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const picked = parseInt(btn.dataset.i);
+        const all = huntBox.querySelectorAll('.options button');
+        all.forEach(b => b.disabled = true);
+        all[h.answer].classList.add('right');
+        if (picked === h.answer) {
+          score++; scoreEl.textContent = 'Score: ' + score;
+          document.getElementById('fb').innerHTML = `<div class="feedback">✅ Correct. ${h.why}</div>`;
+        } else {
+          btn.classList.add('wrong');
+          document.getElementById('fb').innerHTML = `<div class="feedback">❌ Not quite. ${h.why}</div>`;
+        }
+        const next = document.createElement('button');
+        next.className = 'btn';
+        next.textContent = huntIndex < hunts.length - 1 ? 'Next challenge →' : 'See results';
+        next.addEventListener('click', () => { huntIndex++; renderHunt(); });
+        document.getElementById('fb').appendChild(next);
+      });
+    });
+  }
+  function restartHunt() { huntIndex = 0; score = 0; scoreEl.textContent = 'Score: 0'; renderHunt(); }
+  renderHunt();
+
+  // ---------- Symptoms ----------
+  const symptoms = [
+    { s: 'LED stays off', causes: ['LED is reversed (flip it; long leg to +)', 'Supply below about 2 V, the LED’s forward drop', 'Loose wire or open switch'],
+      check: 'Measure voltage across the LED. Zero means the path is broken; about 2 V means the LED is in the wrong orientation.' },
+    { s: 'LED is very dim', causes: ['Resistor value too high', 'Supply voltage too low', 'Wrong LED type for the supply'],
+      check: 'Check the resistor color bands or read it with a multimeter, then recalculate (V − 2) ÷ R.' },
+    { s: 'Chip gets hot', causes: ['Short circuit between supply and ground', 'Supply voltage above the chip’s rating', 'Regulator with too little headroom or no heatsink'],
+      check: 'Disconnect power and look for bridged pins or wires. Confirm the supply voltage matches the datasheet.' },
+    { s: 'Microcontroller keeps resetting', causes: ['Power supply cannot deliver enough current', 'Missing decoupling capacitor near the chip', 'Motor or relay sharing the same supply without isolation'],
+      check: 'Add a 100 µF capacitor across the supply and power the motor from its own supply.' },
+    { s: 'Sensor always reads 0 or maximum', causes: ['No pull-up or pull-down resistor on a digital input', 'Analog sensor wired to a digital pin', 'Sensor not powered'],
+      check: 'Confirm the sensor has power, check the pin type, and add a 10 kΩ pull-down or pull-up.' },
+    { s: 'Motor does not spin', causes: ['Pin drives the motor directly (too much current)', 'No flyback diode for an inductive load', 'Wrong polarity or voltage too low'],
+      check: 'Drive the motor through a transistor or MOSFET, and add a diode across the motor terminals.' },
+    { s: '555 output is unstable', causes: ['Reset pin (pin 4) floating', 'No 100 nF decoupling capacitor on pin 8', 'RC values chosen wrong for the frequency you want'],
+      check: 'Tie pin 4 to VCC, add a 100 nF capacitor from pin 8 to ground, and recheck the timing formula.' }
+  ];
+  const symptomList = document.getElementById('symptomList');
+  symptoms.forEach((item, i) => {
+    const b = document.createElement('button');
+    b.className = 'btn ghost small';
+    b.textContent = item.s;
+    b.addEventListener('click', () => {
+      document.getElementById('symptomOut').innerHTML = `
+        <h3>Most likely causes</h3>
+        <ul>${item.causes.map(c => `<li>${c}</li>`).join('')}</ul>
+        <h3>Check first</h3><p style="margin:0">${item.check}</p>`;
+    });
+    symptomList.appendChild(b);
+  });
+
+  // ---------- Tutorials ----------
+  const tutorials = [
+    { title: '1. Blink an LED', parts: 'Arduino Uno, 1 LED, 220 Ω resistor, 2 jumper wires',
+      steps: ['Connect pin 13 to one leg of the resistor.', 'Connect the other resistor leg to the LED’s long leg (anode).', 'Connect the LED’s short leg (cathode) to GND.', 'Upload the code below. The LED should blink every half second.'],
+      code: `void setup() {\n  pinMode(13, OUTPUT);\n}\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(500);\n  digitalWrite(13, LOW);\n  delay(500);\n}` },
+    { title: '2. Read a push button', parts: 'Arduino Uno, 1 push button, 1 LED with resistor',
+      steps: ['Connect one button leg to pin 2 and the opposite leg to GND.', 'The code turns on the internal pull-up, so no extra resistor is needed.', 'Upload the code and press the button. The LED on pin 13 should follow it.'],
+      code: `void setup() {\n  pinMode(2, INPUT_PULLUP);\n  pinMode(13, OUTPUT);\n}\nvoid loop() {\n  bool pressed = digitalRead(2) == LOW;\n  digitalWrite(13, pressed ? HIGH : LOW);\n}` },
+    { title: '3. Light-level alarm', parts: 'Arduino Uno, LDR, 10 kΩ resistor, piezo buzzer',
+      steps: ['Make a divider: 5 V → LDR → A0 → 10 kΩ → GND.', 'Connect the buzzer between pin 8 and GND.', 'Upload the code. Cover the LDR with your hand and the buzzer should sound.'],
+      code: `void setup() {}\nvoid loop() {\n  int light = analogRead(A0);\n  if (light < 300) {\n    tone(8, 1000);\n  } else {\n    noTone(8);\n  }\n  delay(100);\n}` }
+  ];
+  const tutorialList = document.getElementById('tutorialList');
+  const tutorialOut = document.getElementById('tutorialOut');
+  tutorials.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'btn ghost';
+    b.style.display = 'block';
+    b.style.width = '100%';
+    b.style.textAlign = 'left';
+    b.textContent = t.title;
+    b.addEventListener('click', () => {
+      tutorialOut.innerHTML = `
+        <h3>${t.title}</h3>
+        <p class="muted" style="margin:0 0 8px">Parts: ${t.parts}</p>
+        ${t.steps.map((s, i) => `<p class="step">${i + 1}. ${s}</p>`).join('')}
+        <pre>${t.code.replace(/</g, '&lt;')}</pre>`;
+      tutorialOut.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    tutorialList.appendChild(b);
+  });
+
+  // ---------- Exams ----------
+  const examQs = [
+    { q: 'A 5 V supply feeds an LED with a 2 V forward drop. You want 10 mA. What resistor do you need, in ohms?',
+      answer: 300, tol: 1,
+      sol: 'R = (V − Vf) ÷ I = (5 − 2) ÷ 0.010 = 300 Ω.' },
+    { q: 'Vin = 9 V, R1 = 10 kΩ and R2 = 5 kΩ in a voltage divider. What is Vout, in volts?',
+      answer: 3, tol: 0.05,
+      sol: 'Vout = Vin × R2 ÷ (R1 + R2) = 9 × 5 ÷ 15 = 3 V.' },
+    { q: 'An RC circuit has R = 10 kΩ and C = 100 µF. What is the time constant τ, in seconds?',
+      answer: 1, tol: 0.01,
+      sol: 'τ = R × C = 10,000 × 0.0001 = 1 s.' },
+    { q: 'A 12 V source is across a 4 Ω resistor. What is the power dissipated, in watts?',
+      answer: 36, tol: 0.1,
+      sol: 'I = 12 ÷ 4 = 3 A, then P = V × I = 12 × 3 = 36 W.' }
+  ];
+
+  let examTimerId = null, examLeft = 300, examAnswers = [];
+  const examTimerEl = document.getElementById('examTimer');
+  const examBody = document.getElementById('examBody');
+  const examScoreEl = document.getElementById('examScore');
+
+  function fmtTime(s) { return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+
+  function renderExam() {
+    examBody.innerHTML = examQs.map((q, i) => `
+      <div class="card" style="margin:10px 0">
+        <p style="font-weight:600;margin-top:0">${i + 1}. ${q.q}</p>
+        <input type="number" step="any" id="ex${i}" placeholder="Your answer">
+      </div>`).join('') + '<button class="btn" id="examSubmit">Submit answers</button>';
+    document.getElementById('examSubmit').addEventListener('click', () => finishExam(false));
+  }
+
+  function finishExam(timedOut) {
+    clearInterval(examTimerId);
+    examTimerId = null;
+    let correct = 0;
+    const sols = examQs.map((q, i) => {
+      const v = parseFloat(document.getElementById('ex' + i)?.value);
+      const ok = !isNaN(v) && Math.abs(v - q.answer) <= q.tol;
+      if (ok) correct++;
+      return `<p class="step">${ok ? '✅' : '❌'} ${i + 1}. ${q.sol}</p>`;
+    });
+    if (correct > (progress.examBest || 0)) { progress.examBest = correct; save('circuitatlas-progress', progress); }
+    examBody.innerHTML = (timedOut ? '<p class="muted">Time is up.</p>' : '') + `<h3>Solutions</h3>${sols.join('')}`;
+    examScoreEl.textContent = `Score: ${correct} / ${examQs.length} · Best: ${progress.examBest}/${examQs.length}`;
+  }
+
+  document.getElementById('examStart').addEventListener('click', () => {
+    clearInterval(examTimerId);
+    examLeft = 300;
+    examTimerEl.textContent = fmtTime(examLeft);
+    examScoreEl.textContent = '';
+    renderExam();
+    examTimerId = setInterval(() => {
+      examLeft--;
+      examTimerEl.textContent = fmtTime(Math.max(0, examLeft));
+      if (examLeft <= 0) finishExam(true);
+    }, 1000);
+  });
+  examScoreEl.textContent = progress.examBest ? `Best: ${progress.examBest}/${examQs.length}` : '';
+
+  // ---------- Glossary ----------
+  const terms = [
+    ['Anode', 'The positive terminal of a diode or LED. Current enters here.'],
+    ['Cathode', 'The negative terminal of a diode or LED. Current leaves here.'],
+    ['Forward voltage (Vf)', 'The voltage an LED or diode needs before it conducts, about 2 V for red LEDs.'],
+    ['Pull-up resistor', 'Connects an input to the supply so it reads high when nothing else drives it.'],
+    ['Pull-down resistor', 'Connects an input to ground so it reads low when nothing else drives it.'],
+    ['Decoupling capacitor', 'A small capacitor placed near a chip to smooth out supply noise (often 100 nF).'],
+    ['Time constant (τ)', 'For an RC circuit, τ = R × C. It sets how fast the capacitor charges.'],
+    ['PWM', 'Pulse-width modulation. Switching a pin on and off fast to fake a lower voltage.'],
+    ['Datasheet', 'The manufacturer’s document with a part’s limits, pinout, and typical values.'],
+    ['Short circuit', 'A path of almost zero resistance between two points, often causing overheating.'],
+    ['Open circuit', 'A break in the path, so no current flows.'],
+    ['Ground (GND)', 'The common reference point (0 V) for a circuit.'],
+    ['DIP', 'Dual in-line package. A chip with two rows of pins that fits a breadboard.'],
+    ['Flyback diode', 'A diode across a motor or relay coil that protects the circuit from voltage spikes when power is cut.'],
+    ['I²C', 'A two-wire bus (SDA and SCL) for talking to sensors and displays.']
+  ];
+  const gList = document.getElementById('glossaryList');
+  const gSearch = document.getElementById('gSearch');
+  function renderGlossary() {
+    const q = gSearch.value.trim().toLowerCase();
+    gList.innerHTML = terms
+      .filter(([t, d]) => t.toLowerCase().includes(q) || d.toLowerCase().includes(q))
+      .map(([t, d]) => `<div class="glossary-item"><b>${t}</b><br>${d}</div>`).join('') || '<p class="muted">No matches.</p>';
+  }
+  gSearch.addEventListener('input', renderGlossary);
+  renderGlossary();
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+  // ---------- Offline support ----------
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* optional feature */ });
+  }
+</script>
+</body>
+</html>
